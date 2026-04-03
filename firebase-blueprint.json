@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and usage tracking",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "isPro": { "type": "boolean" },
+        "usageCount": { "type": "integer" },
+        "lastResetDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Generation": {
+      "title": "Generation",
+      "description": "History of AI generations",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "tool": { "type": "string" },
+        "input": { "type": "string" },
+        "output": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "tool", "input", "output", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and usage data"
+    },
+    "/generations/{genId}": {
+      "schema": "Generation",
+      "description": "History of generations"
+    }
+  }
+}

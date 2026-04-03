@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string (optional)
+    //   - isPro: boolean (optional)
+    //   - usageCount: number (optional)
+    //   - lastResetDate: timestamp (optional)
+    //
+    // Collection: generations
+    // Document ID: {genId}
+    // Fields:
+    //   - uid: string (required)
+    //   - tool: string (required)
+    //   - input: string (required)
+    //   - output: string (required)
+    //   - createdAt: timestamp (required)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "arenaofcricket@gmail.com" && request.auth.token.email_verified == true));
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string &&
+             data.email is string;
+    }
+    function isValidGeneration(data) {
+      return data.keys().hasAll(['uid', 'tool', 'input', 'output', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.tool is string &&
+             data.input is string &&
+             data.output is string &&
+             data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && 
+                    (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isPro', 'role']) || 
+                     (request.resource.data.isPro == resource.data.isPro && request.resource.data.role == resource.data.role))) || 
+                    isAdmin();
+    }
+
+    match /generations/{genId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidGeneration(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+  }
+}
