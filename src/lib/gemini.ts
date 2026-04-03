@@ -1,12 +1,21 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiInstance: GoogleGenAI | null = null;
 
-export const generateContent = async (prompt: string, systemInstruction: string) => {
-  if (!process.env.GEMINI_API_KEY) {
+const getAi = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
     throw new Error('Gemini API key is missing. Please check your environment configuration.');
   }
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+};
+
+export const generateContent = async (prompt: string, systemInstruction: string) => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
